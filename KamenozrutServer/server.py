@@ -2,12 +2,14 @@ import socket
 from threading import Thread
 import re
 import json
-from db import nickname_exists, add_active_user, init_db
+from db import nickname_exists, add_active_user, init_db, remove_active_user
 
 HOST = "127.0.0.1"
 PORT = 5555
 
 clients = []
+waiting_players = []
+matches = {}
 
 
 def start_server():
@@ -27,6 +29,7 @@ def start_server():
 def handle_client(conn, addr):
     print(f"Player {addr} connected to server.")
     buffer = ""
+    nickname = None
     try:
         while True:
             data = conn.recv(1024).decode("utf-8")
@@ -39,20 +42,25 @@ def handle_client(conn, addr):
                     try:
                         msg = json.loads(line)
                         print(f"JSON from {addr}: {msg}")
-                        handle_message(conn, msg, addr)
+                        nickname = handle_message(conn, msg, addr)
                     except json.JSONDecodeError:
                         print(f"Invalid JSON from {addr}: {line}")
     except Exception as e:
         print(f'Failed to connect. {e}')
     finally:
         print(f"Player {addr} disconnected from the server.")
+        # TODO: if invalid JSON comes, this will break
+        if nickname:
+            remove_active_user(nickname)
+
         conn.close()
 
 
 def handle_message(conn, message, addr):
+    global waiting_players, matches
     message_type = message["type"]
+    nickname = message["data"]["nickname"]
     if message_type == "CHECK_NICKNAME":
-        nickname = message["data"]["nickname"]
         if is_valid_nickname(nickname):
             if nickname_exists(nickname):
                 response = {"type": "NICKNAME_TAKEN"}
@@ -63,7 +71,25 @@ def handle_message(conn, message, addr):
             response = {"type": "NICKNAME_INVALID"}
         conn.sendall((json.dumps(response) + "\n").encode("utf-8"))
     elif message_type == "MATCHMAKING":
-        pass
+        waiting_players.append((nickname, conn))
+        print(waiting_players)
+        if len(waiting_players) >= 2:
+            (nick1, player1) = waiting_players.pop(0)
+            (nick2, player2) = waiting_players.pop(0)
+            matches[player1] = (nick2, player2)
+            matches[player2] = (nick1, player1)
+            player1.sendall(json.dumps({
+                "type": "MATCH_FOUND",
+                "role": "player1",
+                "opponent": nick2
+            }).encode("utf-8") + b"\n")
+            player2.sendall(json.dumps({
+                "type": "MATCH_FOUND",
+                "role": "player2",
+                "opponent": nick1
+            }).encode('utf-8') + b"\n")
+    # TODO: each JSON message has to contain nickname in order to work with db
+    return nickname
 
 
 def is_valid_nickname(nickname):
