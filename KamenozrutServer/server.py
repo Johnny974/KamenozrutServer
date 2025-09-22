@@ -52,7 +52,7 @@ def handle_client(conn, addr):
         # TODO: if invalid JSON comes, this will break
         if nickname:
             remove_active_user(nickname)
-
+            # waiting_players.remove((nickname, conn))
         conn.close()
 
 
@@ -88,6 +88,8 @@ def handle_message(conn, message, addr):
                 "role": "player2",
                 "opponent": nick1
             }).encode('utf-8') + b"\n")
+    elif message_type == "GRID":
+        matches[nickname][1].sendall(json.dumps(message["data"]["grid"]) + "\n".encode("utf-8"))
     # TODO: each JSON message has to contain nickname in order to work with db
     return nickname
 
