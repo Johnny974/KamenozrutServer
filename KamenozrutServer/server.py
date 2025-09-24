@@ -61,7 +61,8 @@ def handle_message(conn, message, addr):
     message_type = message["type"]
     nickname = message["data"]["nickname"]
     if message_type == "CHECK_NICKNAME":
-        if is_valid_nickname(nickname):
+        valid, error = is_valid_nickname(nickname)
+        if valid:
             if nickname_exists(nickname):
                 response = {"type": "NICKNAME_TAKEN"}
             else:
@@ -89,15 +90,19 @@ def handle_message(conn, message, addr):
                 "opponent": nick1
             }).encode('utf-8') + b"\n")
     elif message_type == "GRID":
-        matches[nickname][1].sendall(json.dumps(message["data"]["grid"]) + "\n".encode("utf-8"))
+        print(f"Enemy grid: {message["data"]["grid"]}")
+        print(f"Enemy color scheme: {message["data"]["color_scheme"]}")
+        matches[nickname][1].sendall((json.dumps({"type": "OPPONENTS_GRID",
+                                                  "grid": message["data"]["grid"],
+                                                  "color_scheme": message["data"]["color_scheme"]}) + "\n").encode("utf-8"))
     # TODO: each JSON message has to contain nickname in order to work with db
     return nickname
 
 
 def is_valid_nickname(nickname):
     if nickname is None or len(nickname) == 0:
-        return "Nickname is required."
+        return False, "Nickname is required."
     elif not re.match(r"^[A-Za-z0-9_]{1,15}$", nickname):
-        return "Nickname can only contain letters, numbers and underscores."
+        return False, "Nickname can only contain letters, numbers and underscores."
     else:
-        return True
+        return True, None
