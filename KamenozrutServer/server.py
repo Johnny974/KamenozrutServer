@@ -61,8 +61,7 @@ def handle_message(conn, message, addr):
     message_type = message["type"]
     nickname = message["data"]["nickname"]
     if message_type == "CHECK_NICKNAME":
-        valid, error = is_valid_nickname(nickname)
-        if valid:
+        if is_valid_nickname(nickname):
             if nickname_exists(nickname):
                 response = {"type": "NICKNAME_TAKEN"}
             else:
@@ -77,8 +76,8 @@ def handle_message(conn, message, addr):
         if len(waiting_players) >= 2:
             (nick1, player1) = waiting_players.pop(0)
             (nick2, player2) = waiting_players.pop(0)
-            matches[player1] = (nick2, player2)
-            matches[player2] = (nick1, player1)
+            matches[nick1] = (nick2, player2)
+            matches[nick2] = (nick1, player1)
             player1.sendall(json.dumps({
                 "type": "MATCH_FOUND",
                 "role": "player1",
@@ -90,19 +89,19 @@ def handle_message(conn, message, addr):
                 "opponent": nick1
             }).encode('utf-8') + b"\n")
     elif message_type == "GRID":
-        print(f"Enemy grid: {message["data"]["grid"]}")
-        print(f"Enemy color scheme: {message["data"]["color_scheme"]}")
-        matches[nickname][1].sendall((json.dumps({"type": "OPPONENTS_GRID",
-                                                  "grid": message["data"]["grid"],
-                                                  "color_scheme": message["data"]["color_scheme"]}) + "\n").encode("utf-8"))
+        opponents_name, opponents_conn = matches[nickname]
+        opponents_conn.sendall((json.dumps({
+            "type": "OPPONENTS_GRID",
+            "grid": message["data"]["grid"],
+            "color_scheme": message["data"]["color_scheme"]}) + "\n").encode("utf-8"))
     # TODO: each JSON message has to contain nickname in order to work with db
     return nickname
 
 
 def is_valid_nickname(nickname):
     if nickname is None or len(nickname) == 0:
-        return False, "Nickname is required."
+        return False
     elif not re.match(r"^[A-Za-z0-9_]{1,15}$", nickname):
-        return False, "Nickname can only contain letters, numbers and underscores."
+        return False
     else:
-        return True, None
+        return True

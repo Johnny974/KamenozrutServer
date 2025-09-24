@@ -40,3 +40,13 @@ def test_valid_nickname(run_server):
     })
     resp_json = json.loads(response)
     assert resp_json["type"] in ["NICKNAME_OK", "NICKNAME_TAKEN"]
+
+
+# def test_grid(run_server):
+#     response = send_and_receive({
+#         "type": "GRID",
+#         "grid": ,
+#         "color_scheme": 1
+#     })
+#     resp_json = json.loads(response)
+#     assert resp_json[]
