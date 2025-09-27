@@ -41,7 +41,7 @@ def test_valid_nickname(run_server):
     resp_json = json.loads(response)
     assert resp_json["type"] in ["NICKNAME_OK", "NICKNAME_TAKEN"]
 
-
+# TODO Need to test all the incoming JSON messages to the server - valid and also invalid, make the code more reliable and safe
 # def test_grid(run_server):
 #     response = send_and_receive({
 #         "type": "GRID",

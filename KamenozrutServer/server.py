@@ -94,6 +94,7 @@ def handle_message(conn, message, addr):
             "type": "OPPONENTS_GRID",
             "grid": message["data"]["grid"],
             "color_scheme": message["data"]["color_scheme"]}) + "\n").encode("utf-8"))
+    # TODO do i need more
     elif message_type == "MOVE":
         opponents_name, opponents_conn = matches[nickname]
         opponents_conn.sendall((json.dumps({

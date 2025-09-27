@@ -2,7 +2,7 @@ import sqlite3
 
 DB_PATH = 'kamenozrut_server.db'
 
-
+# TODO need to add DB tests
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
