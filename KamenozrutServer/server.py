@@ -99,7 +99,7 @@ def handle_message(conn, message, addr):
         opponents_name, opponents_conn = matches[nickname]
         opponents_conn.sendall((json.dumps({
             "type": "MOVE",
-            "move": message["data"]["square_description"] + "\n"}).encode("utf-8")))
+            "move": message["data"]["square_description"]}) + "\n").encode("utf-8"))
     # TODO: each JSON message has to contain nickname in order to work with db
     return nickname
 
