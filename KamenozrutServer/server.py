@@ -3,6 +3,8 @@ from threading import Thread
 import re
 import json
 from db import nickname_exists, add_active_user, init_db, remove_active_user
+from datetime import datetime, timezone
+import pytz
 
 HOST = "127.0.0.1"
 PORT = 5555
@@ -88,6 +90,20 @@ def handle_message(conn, message, addr):
                 "role": "player2",
                 "opponent": nick1
             }).encode('utf-8') + b"\n")
+
+            bratislava_tz = pytz.timezone("Europe/Bratislava")
+            start_time = datetime.now(bratislava_tz).isoformat()
+            duration = 180
+
+            game_start_message = json.dumps({
+                "type": "GAME_START",
+                "start_time": start_time,
+                "duration": duration
+            }).encode("utf-8") + b"\n"
+
+            player1.sendall(game_start_message)
+            player2.sendall(game_start_message)
+
     elif message_type == "GRID":
         opponents_name, opponents_conn = matches[nickname]
         opponents_conn.sendall((json.dumps({
