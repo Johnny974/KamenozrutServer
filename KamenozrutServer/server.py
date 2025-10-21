@@ -153,7 +153,26 @@ def handle_message(conn, message, addr):
             "move": message["data"]["square_description"]}) + "\n").encode("utf-8"))
 
     elif message_type == "GAME_END":
-        pass
+        room_id = message["data"]["room_id"]
+        won = message["data"]["won"]
+        score = message["data"]["score"]
+        game = matches.get(room_id)
+        if game["player1"]["nickname"] == nickname:
+            game["player1"]["finished"] = "True"
+            game["player1"]["score"] = score
+            if won:
+                game["player1"]["reason"] = "Won"
+            else:
+                game["player1"]["reason"] = "No moves left"
+            print(game["player1"])
+        else:
+            game["player2"]["finished"] = "True"
+            game["player2"]["score"] = score
+            if won:
+                game["player2"]["reason"] = "Won"
+            else:
+                game["player2"]["reason"] = "No moves left"
+            print(game["player2"])
     # TODO: each JSON message has to contain nickname in order to work with db
     return nickname
 
