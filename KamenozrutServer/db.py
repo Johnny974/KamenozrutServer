@@ -21,9 +21,8 @@ def init_db():
         score1 INTEGER,
         nickname2 TEXT NOT NULL,
         score2 INTEGER,
-        start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (nickname1) REFERENCES active_users(nickname),
-        FOREIGN KEY (nickname2) REFERENCES active_users(nickname))
+        winner TEXT NOT NULL,
+        start_time DATETIME DEFAULT CURRENT_TIMESTAMP)
     """)
     conn.commit()
     conn.close()
@@ -57,3 +56,5 @@ def remove_active_user(nickname):
     cursor.execute("DELETE FROM active_users where nickname = ?", (nickname,))
     conn.commit()
     conn.close()
+
+# def add_multiplayer_game():

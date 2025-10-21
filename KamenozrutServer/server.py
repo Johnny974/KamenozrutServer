@@ -3,7 +3,7 @@ from threading import Thread
 import re
 import json
 from db import nickname_exists, add_active_user, init_db, remove_active_user
-from datetime import datetime, timezone
+from datetime import datetime
 import pytz
 
 HOST = "127.0.0.1"
@@ -78,44 +78,82 @@ def handle_message(conn, message, addr):
         if len(waiting_players) >= 2:
             (nick1, player1) = waiting_players.pop(0)
             (nick2, player2) = waiting_players.pop(0)
-            matches[nick1] = (nick2, player2)
-            matches[nick2] = (nick1, player1)
-            player1.sendall(json.dumps({
-                "type": "MATCH_FOUND",
-                "role": "player1",
-                "opponent": nick2
-            }).encode("utf-8") + b"\n")
-            player2.sendall(json.dumps({
-                "type": "MATCH_FOUND",
-                "role": "player2",
-                "opponent": nick1
-            }).encode('utf-8') + b"\n")
 
             bratislava_tz = pytz.timezone("Europe/Bratislava")
             start_time = datetime.now(bratislava_tz).isoformat()
             duration = 180
 
-            game_start_message = json.dumps({
-                "type": "GAME_START",
+            room_id = f"{nick1}_{nick2}_{start_time}"
+            matches[room_id] = {"player1": {
+                "nickname": nick1,
+                "conn": player1,
+                "score": 0,
+                "finished": False,
+                "reason": None
+            },
+                "player2": {
+                    "nickname": nick2,
+                    "conn": player2,
+                    "score": 0,
+                    "finished": False,
+                    "reason": None
+                },
+                "start_time": start_time,
+                "duration": duration,
+                "game_over": False}
+
+            # matches[nick1] = (nick2, player2)
+            # matches[nick2] = (nick1, player1)
+            player1.sendall(json.dumps({
+                "type": "MATCH_FOUND",
+                "role": "player1",
+                "opponent": nick2,
+                "room_id": room_id,
                 "start_time": start_time,
                 "duration": duration
-            }).encode("utf-8") + b"\n"
+            }).encode("utf-8") + b"\n")
+            player2.sendall(json.dumps({
+                "type": "MATCH_FOUND",
+                "role": "player2",
+                "opponent": nick1,
+                "room_id": room_id,
+                "start_time": start_time,
+                "duration": duration
+            }).encode('utf-8') + b"\n")
 
-            player1.sendall(game_start_message)
-            player2.sendall(game_start_message)
+            # game_start_message = json.dumps({
+            #     "type": "GAME_START",
+            #     "start_time": start_time,
+            #     "duration": duration
+            # }).encode("utf-8") + b"\n"
+            #
+            # player1.sendall(game_start_message)
+            # player2.sendall(game_start_message)
 
     elif message_type == "GRID":
-        opponents_name, opponents_conn = matches[nickname]
+        room_id = message["data"]["room_id"]
+        game = matches.get(room_id)
+        if game["player1"]["nickname"] == nickname:
+            opponents_conn = game["player2"]["conn"]
+        else:
+            opponents_conn = game["player1"]["conn"]
         opponents_conn.sendall((json.dumps({
             "type": "OPPONENTS_GRID",
             "grid": message["data"]["grid"],
             "color_scheme": message["data"]["color_scheme"]}) + "\n").encode("utf-8"))
-    # TODO do i need more
     elif message_type == "MOVE":
-        opponents_name, opponents_conn = matches[nickname]
+        room_id = message["data"]["room_id"]
+        game = matches.get(room_id)
+        if game["player1"]["nickname"] == nickname:
+            opponents_conn = game["player2"]["conn"]
+        else:
+            opponents_conn = game["player1"]["conn"]
         opponents_conn.sendall((json.dumps({
             "type": "MOVE",
             "move": message["data"]["square_description"]}) + "\n").encode("utf-8"))
+
+    elif message_type == "GAME_END":
+        pass
     # TODO: each JSON message has to contain nickname in order to work with db
     return nickname
 
