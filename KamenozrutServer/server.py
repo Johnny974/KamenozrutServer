@@ -12,6 +12,7 @@ PORT = 5555
 clients = []
 waiting_players = []
 matches = {}
+winner = None
 
 
 def start_server():
@@ -59,7 +60,7 @@ def handle_client(conn, addr):
 
 
 def handle_message(conn, message, addr):
-    global waiting_players, matches
+    global waiting_players, matches, winner
     message_type = message["type"]
     nickname = message["data"]["nickname"]
     if message_type == "CHECK_NICKNAME":
@@ -154,25 +155,35 @@ def handle_message(conn, message, addr):
 
     elif message_type == "GAME_END":
         room_id = message["data"]["room_id"]
-        won = message["data"]["won"]
+        finished = message["data"]["finished"]
         score = message["data"]["score"]
+        reason = message["data"]["reason"]
         game = matches.get(room_id)
         if game["player1"]["nickname"] == nickname:
-            game["player1"]["finished"] = "True"
+            game["player1"]["finished"] = finished
             game["player1"]["score"] = score
-            if won:
-                game["player1"]["reason"] = "Won"
-            else:
-                game["player1"]["reason"] = "No moves left"
-            print(game["player1"])
+            game["player1"]["reason"] = reason
         else:
-            game["player2"]["finished"] = "True"
+            game["player2"]["finished"] = finished
             game["player2"]["score"] = score
-            if won:
-                game["player2"]["reason"] = "Won"
-            else:
-                game["player2"]["reason"] = "No moves left"
-            print(game["player2"])
+            game["player2"]["reason"] = reason
+        if game["player1"]["finished"] and game["player2"]["finished"]:
+            if (game["player1"]["reason"] == "You won" and game["player2"]["reason"] == "You won") or (
+                    game["player1"]["reason"] != "You won" and game["player2"]["reason"] != "You won"):
+                if game["player1"]["score"] > game["player2"]["score"]:
+                    winner = game["player1"]["nickname"]
+                elif game["player1"]["score"] < game["player2"]["score"]:
+                    winner = game["player2"]["nickname"]
+                else:
+                    winner = None
+            if game["player1"]["reason"] == "You won" and game["player2"]["reason"] != "You won":
+                winner = game["player1"]["nickname"]
+            elif game["player2"]["reason"] == "You won" and game["player1"]["reason"] != "You won":
+                winner = game["player2"]["nickname"]
+            game["player1"]["conn"].sendall((json.dumps({
+                "type": "GAME_WINNER",
+                "winner": winner}) + "\n").encode("utf-8"))
+
     # TODO: each JSON message has to contain nickname in order to work with db
     return nickname
 
