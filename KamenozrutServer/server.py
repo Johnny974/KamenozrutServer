@@ -183,6 +183,9 @@ def handle_message(conn, message, addr):
             game["player1"]["conn"].sendall((json.dumps({
                 "type": "GAME_WINNER",
                 "winner": winner}) + "\n").encode("utf-8"))
+            game["player2"]["conn"].sendall((json.dumps({
+                "type": "GAME_WINNER",
+                "winner": winner}) + "\n").encode("utf-8"))
 
     # TODO: each JSON message has to contain nickname in order to work with db
     return nickname
